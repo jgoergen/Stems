@@ -1,0 +1,516 @@
+﻿<html>
+    <head>
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
+        <title></title>
+
+        <style type="text/css">
+
+            body { background-color: black; }
+            canvas { border: 1px solid #ccc; width: 100%; }
+
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas" width="300" height="300"></canvas>
+    </body>
+
+    <script src="Scripts/2DLib/Vector2D.js" type="text/javascript"></script>
+    <script src="Scripts/2DLib/Line2D.js" type="text/javascript"></script>
+    <script src="Scripts/2DLib/Circle2D.js" type="text/javascript"></script>
+    <script src="Scripts/2DLib/CollisionFuncs.js" type="text/javascript"></script>
+    <script src="Scripts/VerletIntegration/Particle.js" type="text/javascript"></script>
+    <script src="Scripts/VerletIntegration/Constraint.js" type="text/javascript"></script>
+    <script src="Scripts/VerletIntegration/VerletIntegration.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+
+        /// Settings ////////////////////////////////////////////
+
+        // put any adjustable settings here that would be interesting to tinker with.
+
+        var FPS = 60;
+        var VERLET_FPS = 120;
+        var CANVAS_WIDTH = 1200;
+        var CANVAS_HEIGHT = 800;
+        var GRAVITY_DAMPENING = 0.01;
+
+        /////////////////////////////////////////////////////////
+
+        let localCtxReference = undefined;
+        let lastTime = 0;
+        let date = undefined;
+        let elapsed = 0;
+        let verlet;
+        let objectIndex = 0;
+        var verletUpdateIntervalID = 0;
+        var gravityUpdateIntervalID = 0;
+        var nodes = [];
+        var steps = 0;
+
+        // code to run before update looping starts.
+
+        function init(ctx) {
+
+            return new Promise(
+                function(resolve, reject) {
+
+                    console.log("Init");
+                    localCtxReference = ctx;
+                    ctx.fillStyle = "white";
+                    ctx.lineWidth="1";
+                    ctx.strokeStyle="white";
+                    lastTime = new Date();
+                    elapsed = Math.random() * 10000;
+
+                    verlet = new VerletIntegration({
+                        gravity: new Vector2D(0, 0),
+                        stageMinVect: new Vector2D(10, 10),
+                        stageMaxVect: new Vector2D(CANVAS_WIDTH - 10, CANVAS_HEIGHT - 10),
+                        iterations: 6
+                    });
+
+                    getNodes();
+
+                    // run the physics update at a faster rate then the display update;
+                    verletUpdateIntervalID = setTimeout(
+                        function() { updateVerlet(); },
+                        Math.ceil(1000 / VERLET_FPS));
+
+                    gravityUpdateIntervalID = setTimeout(
+                        function () { changeGravity(); },
+                        5000);
+
+                    changeGravity();
+                    resolve();
+                });
+        }
+
+        function changeGravity() {
+
+            verlet.gravity.x = (Math.random() * 0.001) - 0.0005;
+            verlet.gravity.y = (Math.random() * 0.001) - 0.0005;
+
+            gravityUpdateIntervalID = setTimeout(
+                function () { changeGravity(); },
+                5000);
+        }
+
+        function getNodes() {
+
+            var macroNodes = [
+                { type: "item", title: "photo 1", content: "" },
+                { type: "item", title: "photo 2", content: "" },
+                { type: "item", title: "photo 3", content: "" },
+                { type: "item", title: "photo 4", content: "" },
+                { type: "item", title: "photo 5", content: "" },
+                { type: "item", title: "photo 6", content: "" },
+                { type: "item", title: "photo 7", content: "" },
+                { type: "item", title: "photo 8", content: "" }
+            ];
+
+            var artsyNodes = [
+                { type: "item", title: "photo 1", content: "" },
+                { type: "item", title: "photo 2", content: "" },
+                { type: "item", title: "photo 3", content: "" },
+                { type: "item", title: "photo 4", content: "" }
+            ];
+
+            var bandNodes = [
+                { type: "item", title: "photo 1", content: "" },
+                { type: "item", title: "photo 2", content: "" },
+                { type: "item", title: "photo 3", content: "" },
+                { type: "item", title: "photo 4", content: "" }
+            ];
+
+            var portraitNodes = [
+                { type: "item", title: "photo 1", content: "" },
+                { type: "item", title: "photo 2", content: "" },
+                { type: "item", title: "photo 3", content: "" },
+                { type: "item", title: "photo 4", content: "" }
+            ];
+
+            var photoNodes = [
+                { type: "group", title: "macro", content: macroNodes },
+                { type: "group", title: "artsy", content: artsyNodes },
+                { type: "group", title: "band", content: bandNodes },
+                { type: "group", title: "portrait", content: portraitNodes }
+            ];
+
+            var rementIpalexNodes = [
+                { type: "item", title: "song 1", content: "" },
+                { type: "item", title: "song 2", content: "" },
+                { type: "item", title: "song 3", content: "" },
+                { type: "item", title: "song 4", content: "" }
+            ];
+
+            var cmplxNodes = [
+                { type: "item", title: "song 1", content: "" },
+                { type: "item", title: "song 2", content: "" },
+                { type: "item", title: "song 3", content: "" },
+                { type: "item", title: "song 4", content: "" }
+            ];
+
+            var otherNodes = [
+                { type: "item", title: "song 1", content: "" },
+                { type: "item", title: "song 2", content: "" },
+                { type: "item", title: "song 3", content: "" },
+                { type: "item", title: "song 4", content: "" }
+            ];
+
+            var musicNodes = [
+                { type: "group", title: "rementipalex", content: rementIpalexNodes },
+                { type: "group", title: "cmplx", content: cmplxNodes },
+                { type: "group", title: "other", content: otherNodes }
+            ];
+
+            var javascriptNodes = [
+                { type: "item", title: "project 1", content: "" },
+                { type: "item", title: "project 2", content: "" },
+                { type: "item", title: "project 3", content: "" },
+                { type: "item", title: "project 4", content: "" },
+                { type: "item", title: "project 5", content: "" },
+                { type: "item", title: "project 6", content: "" },
+                { type: "item", title: "project 7", content: "" },
+                { type: "item", title: "project 8", content: "" }
+            ];
+
+            var dotnetNodes = [
+                { type: "item", title: "project 1", content: "" },
+                { type: "item", title: "project 2", content: "" },
+                { type: "item", title: "project 3", content: "" },
+                { type: "item", title: "project 4", content: "" }
+            ];
+
+            var nodeNodes = [
+                { type: "item", title: "project 1", content: "" },
+                { type: "item", title: "project 2", content: "" },
+                { type: "item", title: "project 3", content: "" },
+                { type: "item", title: "project 4", content: "" }
+            ];
+
+            var arduinoNodes = [
+                { type: "item", title: "project 1", content: "" },
+                { type: "item", title: "project 2", content: "" },
+                { type: "item", title: "project 3", content: "" },
+                { type: "item", title: "project 4", content: "" }
+            ];
+
+            var codeNodes = [
+                { type: "group", title: "javascript", content: javascriptNodes },
+                { type: "group", title: "dotnet", content: dotnetNodes },
+                { type: "group", title: "node", content: nodeNodes },
+                { type: "group", title: "arduino", content: arduinoNodes }
+            ];
+
+            // root
+            nodes = [
+                { type: "group", title: "javascript", content: codeNodes },
+                { type: "item", title: "about me", content: "" },
+                { type: "group", title: "javascript", content: photoNodes },
+                { type: "item", title: "experience", content: "" },
+                { type: "group", title: "javascript", content: musicNodes },
+                { type: "item", title: "skills", content: "" }
+            ]
+
+            genNodes(nodes, undefined, (CANVAS_WIDTH / 2) - 150, (CANVAS_HEIGHT / 2), null, 0);
+        }
+
+        function updateVerlet() {
+
+            /*steps++;
+            if (steps > 2)
+                return;*/
+
+            verlet.runTimeStep();
+
+            verletUpdateIntervalID = setTimeout(
+                function() { updateVerlet(); },
+                Math.ceil(1000 / VERLET_FPS));
+        }
+
+        // code to run every frame.
+
+        function update(ctx) {
+
+            date = new Date();
+            elapsed += date - lastTime;
+            lastTime = date;
+
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            drawNodes(ctx);
+        }
+
+        function drawNodes(ctx) {
+
+            for(var i = 0; i < verlet.particles.length; i ++) {
+
+                if (verlet.particles[i].data.drawn) {
+
+                    ctx.beginPath();
+
+                    if (verlet.particles[i].radius)
+                        ctx.arc(
+                            verlet.particles[i].vector.x,
+                            verlet.particles[i].vector.y,
+                            verlet.particles[i].radius,
+                            0,
+                            2 * Math.PI);
+                    else
+                        ctx.rect(
+                            verlet.particles[i].vector.x,
+                            verlet.particles[i].vector.y,
+                            2,
+                            2);
+
+                    ctx.stroke();
+                }
+            }
+
+            ctx.beginPath();
+
+            for(var i = 0; i < verlet.constraints.length; i++) {
+
+                if (verlet.constraints[i].data.drawn) {
+
+                    ctx.moveTo(
+                        verlet.constraints[i].ends.startParticle.vector.x,
+                        verlet.constraints[i].ends.startParticle.vector.y);
+
+                    ctx.lineTo(
+                        verlet.constraints[i].ends.endParticle.vector.x,
+                        verlet.constraints[i].ends.endParticle.vector.y,);
+
+                }
+            }
+
+            ctx.stroke();
+        }
+
+        let particles = [];
+
+        function genSteps(baseX, baseY, startParticle, endParticle, steps) {
+
+            let lastParticle = startParticle;
+            let intervalX = (endParticle.vector.x - startParticle.vector.x) / steps;
+            let intervalY = (endParticle.vector.y - startParticle.vector.y) / steps;
+
+            // spawn intermediary particles to form a chain
+            for (var step = 0; step <= steps; step++) {
+
+                let stepParticle = null;
+
+                if (step == steps) {
+
+                    stepParticle = endParticle;
+
+                } else {
+
+                    stepParticle =
+                        new Particle({
+                            vector:
+                            new Vector2D(
+                                baseX + (step * intervalX),
+                                baseY + (step * intervalY)),
+                            radius: 0,
+                            collides: false,
+                            data: { drawn: false }
+                        });
+
+                    verlet.addParticle(stepParticle);
+                }
+
+                verlet.addConstraint(
+                    new Constraint({
+                        startParticle: lastParticle,
+                        endParticle: stepParticle,
+                        stiffness: 1,
+                        collides: false,
+                        data: { drawn: true }
+                    }));
+
+                lastParticle = stepParticle;
+            }
+        }
+
+        function genNodes(parseNodes, parentParticle, baseX, baseY, angle, level) {
+
+            var groupNodeLength = 140;
+            var itemNodeLength = 50;
+            var angleRads = (angle || 0) * Math.PI / 180;
+            var angleIncrement = 50;
+            let newBaseX = baseX + (Math.cos(angleRads) * groupNodeLength);
+            let newBaseY = baseY + (Math.sin(angleRads) * groupNodeLength);
+
+            // make a large circle for this node
+
+            let particle =
+                new Particle({
+                    vector:
+                        new Vector2D(
+                            newBaseX,
+                            newBaseY),
+                    radius: 0,
+                    collides: false,
+                    pinnedTo: (!parentParticle ? new Vector2D(newBaseX, newBaseY) : null),
+                    data: { drawn: false }
+                });
+
+            verlet.addParticle(particle);
+            particles.push(particle);
+
+            // if there is a parent, connect it to that parent
+
+            if (parentParticle)
+                genSteps(
+                    baseX,
+                    baseY,
+                    parentParticle,
+                    particle,
+                    6);
+
+            for (var i = 0; i < parseNodes.length; i++) {
+
+                var node = parseNodes[i];
+                var newAngle = angle == null ?
+                    (i / parseNodes.length) * 360 :
+                    angle + (i * angleIncrement) - ((parseNodes.length / 2) * angleIncrement);
+
+                if (node.type == "group") {
+
+                    genNodes(
+                        node.content,
+                        particle,
+                        newBaseX,
+                        newBaseY,
+                        newAngle,
+                        level ++);
+
+                } else {
+
+                    var itemAngleRads = newAngle * Math.PI / 180;
+
+                    // make a small circle for this node
+                    let itemParticle =
+                        new Particle({
+                            vector:
+                                new Vector2D(
+                                    newBaseX + (Math.cos(itemAngleRads) * itemNodeLength),
+                                    newBaseY + (Math.sin(itemAngleRads) * itemNodeLength)),
+                            radius: 10,
+                            collides: true,
+                            data: { drawn: true }
+                        });
+
+                    verlet.addParticle(itemParticle);
+
+                    genSteps(
+                        newBaseX,
+                        newBaseY,
+                        particle,
+                        itemParticle,
+                        4);
+
+                }
+            }
+
+            queFinishBindings();
+        }
+
+        let queFinishBindingsID = 0;
+
+        function queFinishBindings() {
+
+            clearTimeout(queFinishBindingsID);
+            queFinishBindingsID = setTimeout(
+                function () { finishBindings(); },
+                500);
+        }
+
+        function finishBindings() {
+
+            for (var particle = 0; particle < particles.length; particle ++) {
+
+                for (var particle2 = 0; particle2 < particles.length; particle2 ++) {
+
+                    verlet.addConstraint(
+                        new Constraint({
+                            startParticle: particles[particle],
+                            endParticle: particles[particle2],
+                            stiffness: 0.03,
+                            collides: false,
+                            data: { drawn: false }
+                        }));
+                }
+            }
+        }
+
+        function fixAngle(val) {
+
+            while (val < 0)
+                val += 360;
+
+            while (val > 360)
+                val -= 360;
+
+            return val;
+        }
+
+        // code to run when the device tilts
+        function tilt(e) {
+
+            usingTilt = true;
+            verlet.gravity.x = (e.gamma * -1) * GRAVITY_DAMPENING;
+            verlet.gravity.y = (e.beta) * GRAVITY_DAMPENING;
+        }
+
+        // code to run when user presses primary mouse button ( or first finger. )
+
+        function mouseDown(e) {
+
+            //e.x e.y e.speed
+        }
+
+        // code to run when user raises primary mouse button ( or first finger. )
+
+        function mouseUp(e) {
+
+            //e.x e.y e.speed
+        }
+
+        // code to run when user moves primary mouse button ( or first finger. )
+
+        function mouseMove(e, isMouseDown) {
+
+            //e.x e.y e.speed
+        }
+
+        // code to run when user presses secondary mouse button ( or second finger. )
+
+        function secondaryMouseDown(e) {
+
+            //e.x e.y e.speed
+        }
+
+        // code to run when user raises secondary mouse button ( or second finger. )
+
+        function secondaryMouseUp(e) {
+
+            //e.x e.y e.speed
+        }
+
+        // code to run when user moves secondary mouse button ( or second finger. )
+
+        function secondaryMouseMove(e) {
+
+            //e.x e.y e.speed
+        }
+
+    </script>
+
+    <script src="Scripts/DemoFramework.js" type="text/javascript"></script>
+</html>
